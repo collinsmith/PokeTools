@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PokeTools</string>
+
+    <string name="starting_vpn">Starting PokeTools VPN</string>
+    <string name="connected">connected</string>
+    <string name="disconnected">disconnected</string>
+</resources>
