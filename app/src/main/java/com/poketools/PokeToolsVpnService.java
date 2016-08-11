@@ -1,4 +1,4 @@
-package com.gmail.csmithapps2.poketools;
+package com.poketools;
 
 import android.content.Intent;
 import android.net.VpnService;

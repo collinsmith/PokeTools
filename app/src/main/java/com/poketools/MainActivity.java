@@ -1,4 +1,4 @@
-package com.gmail.csmithapps2.poketools;
+package com.poketools;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
