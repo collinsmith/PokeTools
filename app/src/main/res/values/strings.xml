@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">PokeTools</string>
+    <string name="server_client_id">683233936387-2gb5mqrcfc0e2ci4648fa3qapmju1jc1.apps.googleusercontent.com</string>
+
+    <string name="login_with_google">Sign-in With Google</string>
+    <string name="pick_account">You must pick an account to continue!</string>
+    <string name="login_failed">Sign-in failed, please try again later!</string>
 
     <string name="starting_vpn">Starting PokeTools VPN</string>
     <string name="connected">connected</string>
