@@ -1,7 +1,5 @@
 package com.poketools;
 
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -11,9 +9,13 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.pokegoapi.api.PokemonGo;
 import com.pokegoapi.api.player.PlayerProfile;
@@ -21,8 +23,7 @@ import com.pokegoapi.auth.GoogleUserCredentialProvider;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
 
-import net.openid.appauth.AuthorizationRequest;
-import net.openid.appauth.AuthorizationService;
+import org.apache.commons.lang3.StringUtils;
 
 import POGOProtos.Data.PlayerDataOuterClass;
 import okhttp3.OkHttpClient;
@@ -87,7 +88,51 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void requestAuth() {
-        new OAuth2AsyncTask().execute();
+        WebViewClient webViewClient = new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                view.loadUrl(url);
+                return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                Log.d(TAG, "title=" + view.getTitle());
+                String title = view.getTitle();
+                if (!title.startsWith("Success ")) {
+                    return;
+                }
+
+                Uri uri = Uri.parse("http://foo?" + title.substring(8));
+                String code = uri.getQueryParameter("code");
+                if (code == null) {
+                    Toast.makeText(LoginActivity.this, "code is null", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                Toast.makeText(LoginActivity.this, code, Toast.LENGTH_LONG).show();
+                view.destroy();
+            }
+        };
+
+        Uri uri = Uri.parse(PokeTools.Auth.OAUTH2_AUTH_ENDPOINT).buildUpon()
+                .appendQueryParameter("client_id", PokeTools.Auth.OAUTH2_CLIENT_ID)
+                .appendQueryParameter("redirect_uri", PokeTools.Auth.OAUTH2_REDIRECT_URI)
+                .appendQueryParameter("response_type", PokeTools.Auth.OAUTH2_RESPONSE_TYPE)
+                .appendQueryParameter("scope", StringUtils.join(PokeTools.Auth.OAUTH2_SCOPE, " "))
+                .build();
+
+        WebView webView = (WebView) findViewById(R.id.webview);
+        webView.loadUrl(uri.toString());
+        webView.setWebViewClient(webViewClient);
+        webView.setVisibility(View.VISIBLE);
+        webView.bringToFront();
+
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+
+        //new OAuth2AsyncTask().execute();
     }
 
     private void onAuthReceived(String token) {
@@ -128,25 +173,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         }
 
         private String fetchToken() {
-            //Intent intent = new Intent(Intent.ACTION_VIEW);
-            //intent.setData(Uri.parse(GoogleUserCredentialProvider.LOGIN_URL));
-            //startActivityForResult(intent, 0);
 
-            AuthorizationRequest authorizationRequest = new AuthorizationRequest.Builder(
-                        PokeTools.OAUTH2_SERVICE_CONFIG,
-                        PokeTools.OAUTH2_CLIENT_ID,
-                        PokeTools.OAUTH2_RESPONSE_TYPE,
-                        Uri.parse(PokeTools.OAUTH2_REDIRECT_URI))
-                    .setScope(PokeTools.OAUTH2_SCOPE)
-                    .build();
-
-            Context context = LoginActivity.this;
-            AuthorizationService service = new AuthorizationService(context);
-            Intent postAuthIntent = new Intent(context, MainActivity.class);
-            service.performAuthorizationRequest(
-                    authorizationRequest,
-                    PendingIntent.getActivity(
-                            context, authorizationRequest.hashCode(), postAuthIntent, 0));
 
             return null;
         }
