@@ -1,5 +1,7 @@
 package com.poketools;
 
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -15,10 +17,12 @@ import android.widget.LinearLayout;
 
 import com.pokegoapi.api.PokemonGo;
 import com.pokegoapi.api.player.PlayerProfile;
-import com.pokegoapi.auth.CredentialProvider;
 import com.pokegoapi.auth.GoogleUserCredentialProvider;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
+
+import net.openid.appauth.AuthorizationRequest;
+import net.openid.appauth.AuthorizationService;
 
 import POGOProtos.Data.PlayerDataOuterClass;
 import okhttp3.OkHttpClient;
@@ -72,10 +76,11 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
         new AlertDialog.Builder(this)
                 .setView(input)
+                .setTitle("Enter Provided Authorization Code:")
                 .setPositiveButton("Done", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Log.d(TAG, input.getText().toString());
+                        login(input.getText().toString());
                     }
                 })
                 .show();
@@ -123,9 +128,26 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         }
 
         private String fetchToken() {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setData(Uri.parse(GoogleUserCredentialProvider.LOGIN_URL));
-            startActivityForResult(intent, 0);
+            //Intent intent = new Intent(Intent.ACTION_VIEW);
+            //intent.setData(Uri.parse(GoogleUserCredentialProvider.LOGIN_URL));
+            //startActivityForResult(intent, 0);
+
+            AuthorizationRequest authorizationRequest = new AuthorizationRequest.Builder(
+                        PokeTools.OAUTH2_SERVICE_CONFIG,
+                        PokeTools.OAUTH2_CLIENT_ID,
+                        PokeTools.OAUTH2_RESPONSE_TYPE,
+                        Uri.parse(PokeTools.OAUTH2_REDIRECT_URI))
+                    .setScope(PokeTools.OAUTH2_SCOPE)
+                    .build();
+
+            Context context = LoginActivity.this;
+            AuthorizationService service = new AuthorizationService(context);
+            Intent postAuthIntent = new Intent(context, MainActivity.class);
+            service.performAuthorizationRequest(
+                    authorizationRequest,
+                    PendingIntent.getActivity(
+                            context, authorizationRequest.hashCode(), postAuthIntent, 0));
+
             return null;
         }
 
@@ -150,11 +172,12 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             return attemptLogin(params[0]);
         }
 
-        private PokemonGo attemptLogin(final String token) {
+        private PokemonGo attemptLogin(final String authCode) {
             try {
                 OkHttpClient client = new OkHttpClient();
-                CredentialProvider credentialProvider
+                GoogleUserCredentialProvider credentialProvider
                         = new GoogleUserCredentialProvider(client);
+                credentialProvider.login(authCode);
                 PokemonGo pogo = new PokemonGo(credentialProvider, client);
 
                 PlayerProfile profile = pogo.getPlayerProfile();
