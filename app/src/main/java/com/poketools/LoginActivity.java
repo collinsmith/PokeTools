@@ -1,19 +1,17 @@
 package com.poketools;
 
-import com.google.android.gms.auth.GoogleAuthException;
-import com.google.android.gms.auth.GoogleAuthUtil;
-import com.google.android.gms.auth.UserRecoverableAuthException;
-import com.google.android.gms.common.AccountPicker;
-
-import android.accounts.AccountManager;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 
 import com.pokegoapi.api.PokemonGo;
 import com.pokegoapi.api.player.PlayerProfile;
@@ -21,9 +19,6 @@ import com.pokegoapi.auth.CredentialProvider;
 import com.pokegoapi.auth.GoogleUserCredentialProvider;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
-
-import java.io.IOException;
-import java.util.Arrays;
 
 import POGOProtos.Data.PlayerDataOuterClass;
 import okhttp3.OkHttpClient;
@@ -56,7 +51,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         try {
             switch (v.getId()) {
                 case R.id.btnLoginWithGoogle:
-                    selectAccount();
+                    requestAuth();
                     break;
                 default:
                     return;
@@ -67,31 +62,27 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         }
     }
 
-    private void selectAccount() {
-        Intent intent = AccountPicker.newChooseAccountIntent(
-                null, null, new String[]{ "com.google" }, false, null, null, null, null);
-        startActivityForResult(intent, 0);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (resultCode) {
-            case RESULT_OK:
-                Log.d(TAG, Arrays.toString(data.getExtras().keySet().toArray()));
-                String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-                Log.d(TAG, "accountName=" + accountName);
-                fetchAuth(accountName);
-                break;
-            case RESULT_CANCELED:
-                Toast.makeText(this, R.string.pick_account, Toast.LENGTH_LONG).show();
-                break;
-            default:
-                throw new IllegalStateException();
-        }
+        final EditText input = new EditText(LoginActivity.this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(lp);
+
+        new AlertDialog.Builder(this)
+                .setView(input)
+                .setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.d(TAG, input.getText().toString());
+                    }
+                })
+                .show();
     }
 
-    private void fetchAuth(String accountName) {
-        new FetchTokenAsyncTask().execute(accountName);
+    private void requestAuth() {
+        new OAuth2AsyncTask().execute();
     }
 
     private void onAuthReceived(String token) {
@@ -109,7 +100,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             return;
         }*/
 
-        login(token);
+        //login(token);
     }
 
     private void login(String token) {
@@ -125,36 +116,16 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         Log.e(TAG, t.getLocalizedMessage(), t);
     }
 
-    private class FetchTokenAsyncTask extends AsyncTask<String, Void, String> {
-        private static final String SCOPE
-                = "oauth2:https://www.googleapis.com/auth/userinfo.email";
-
+    private class OAuth2AsyncTask extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
-            if (params == null) {
-                throw new IllegalArgumentException("params cannot be null");
-            } else if (params.length != 1) {
-                throw new IllegalArgumentException(
-                        "params should only contain 1 item (accountName)");
-            }
-
-            return fetchToken(params[0]);
+            return fetchToken();
         }
 
-        private String fetchToken(String accountName) {
-            try {
-                String token = GoogleAuthUtil.getToken(LoginActivity.this, accountName, SCOPE);
-                Log.d(TAG, "token=" + token);
-                return token;
-            } catch (IOException e) {
-                Log.e(TAG, e.getLocalizedMessage(), e);
-            } catch (UserRecoverableAuthException e) {
-                Log.e(TAG, e.getLocalizedMessage(), e);
-                startActivityForResult(e.getIntent(), 0);
-            } catch (GoogleAuthException e) {
-                Log.e(TAG, e.getLocalizedMessage(), e);
-            }
-
+        private String fetchToken() {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(GoogleUserCredentialProvider.LOGIN_URL));
+            startActivityForResult(intent, 0);
             return null;
         }
 
