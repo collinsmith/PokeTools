@@ -15,17 +15,14 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.pokegoapi.api.PokemonGo;
-import com.pokegoapi.api.player.PlayerProfile;
 import com.pokegoapi.auth.GoogleUserCredentialProvider;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
 
 import org.apache.commons.lang3.StringUtils;
 
-import POGOProtos.Data.PlayerDataOuterClass;
 import okhttp3.OkHttpClient;
 
 public class LoginActivity extends AppCompatActivity implements View.OnClickListener {
@@ -98,21 +95,21 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                Log.d(TAG, "title=" + view.getTitle());
                 String title = view.getTitle();
                 if (!title.startsWith("Success ")) {
                     return;
                 }
 
-                Uri uri = Uri.parse("http://foo?" + title.substring(8));
-                String code = uri.getQueryParameter("code");
-                if (code == null) {
-                    Toast.makeText(LoginActivity.this, "code is null", Toast.LENGTH_LONG).show();
+                String content = title.substring(8);
+                Log.d(TAG, "response=" + content);
+                Uri uri = Uri.parse("http://localhost?" + content);
+                String authCode = uri.getQueryParameter("code");
+                if (authCode == null) {
                     return;
                 }
 
-                Toast.makeText(LoginActivity.this, code, Toast.LENGTH_LONG).show();
-                view.destroy();
+                Log.d(TAG, "got " + authCode);
+                onAuthReceived(authCode);
             }
         };
 
@@ -135,31 +132,17 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         //new OAuth2AsyncTask().execute();
     }
 
-    private void onAuthReceived(String token) {
-        /*OkHttpClient client = new OkHttpClient();
-        GoogleUserCredentialProvider provider;
-        try {
-            provider = new GoogleUserCredentialProvider(client, token);
-        } catch (LoginFailedException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
-            Toast.makeText(this, R.string.login_failed, Toast.LENGTH_LONG).show();
-            return;
-        } catch (RemoteServerException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
-            Toast.makeText(this, R.string.login_failed, Toast.LENGTH_LONG).show();
-            return;
-        }*/
-
-        //login(token);
+    private void onAuthReceived(String authCode) {
+        login(authCode);
     }
 
-    private void login(String token) {
-        new LoginAsyncTask().execute(token);
+    private void login(String authCode) {
+        new LoginAsyncTask().execute(authCode);
     }
 
     private void onLogin(PokemonGo pogo) {
-        //Intent intent = new Intent(this, MainActivity.class);
-        //startActivity(intent);
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
     }
 
     private void onLoginFailed(Throwable t) {
@@ -201,17 +184,23 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
         private PokemonGo attemptLogin(final String authCode) {
             try {
+                Log.d(TAG, "attempting login with " + authCode + " ...");
                 OkHttpClient client = new OkHttpClient();
                 GoogleUserCredentialProvider credentialProvider
                         = new GoogleUserCredentialProvider(client);
                 credentialProvider.login(authCode);
+
+                /*
+                Log.d(TAG, "authenticating with pogo servers...");
                 PokemonGo pogo = new PokemonGo(credentialProvider, client);
 
                 PlayerProfile profile = pogo.getPlayerProfile();
                 PlayerDataOuterClass.PlayerData player = profile.getPlayerData();
-                Log.d(TAG, "username=" + player.getUsername());
+                Log.d(TAG, "logged in as " + player.getUsername());
 
                 return pogo;
+                */
+                return null;
             } catch (LoginFailedException e) {
                 onLoginFailed(e);
                 return null;
