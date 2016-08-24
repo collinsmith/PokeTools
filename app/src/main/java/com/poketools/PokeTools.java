@@ -12,7 +12,7 @@ class PokeTools {
 
         static final String OAUTH2_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/auth";
         static final String OAUTH2_CLIENT_ID = GoogleUserCredentialProvider.CLIENT_ID;
-        static final String OAUTH2_REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob:auto";
+        static final String OAUTH2_REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
         static final String OAUTH2_RESPONSE_TYPE = "code";
         static final String[] OAUTH2_SCOPE = new String[] {
                 "openid",
